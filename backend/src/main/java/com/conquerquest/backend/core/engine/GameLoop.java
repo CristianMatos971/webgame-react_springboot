@@ -1,6 +1,7 @@
 package com.conquerquest.backend.core.engine;
 
 import com.conquerquest.backend.core.ecs.GameSystem;
+import com.conquerquest.backend.core.services.SnapshotService;
 import com.conquerquest.backend.core.state.WorldState;
 import com.conquerquest.backend.core.systems.PhysicsSystem;
 import com.conquerquest.backend.core.systems.PlayerControlSystem;
@@ -23,6 +24,8 @@ public class GameLoop {
 
     private final PlayerControlSystem playerControlSystem;
 
+    private final SnapshotService snapshotService;
+
     // Target: 60 Ticks Per Second (1000ms / 60 ≈ 16.6ms)
     private static final int TICK_RATE_MS = 16;
 
@@ -44,8 +47,7 @@ public class GameLoop {
             playerControlSystem.update(worldState, DELTA_TIME);
             physicsSystem.update(worldState, DELTA_TIME);
 
-            // Future Broadcast Snapshot
-            // socketService.broadcastState();
+            snapshotService.broadcastState();
 
         } catch (Exception e) {
             log.error("Error in Game Loop", e);

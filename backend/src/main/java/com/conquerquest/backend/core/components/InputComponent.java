@@ -29,11 +29,3 @@ public record InputComponent(
         return actions.contains(InputType.DASH);
     }
 }
-
-enum InputType {
-    SPRINT,
-    ATTACK,
-    DASH,
-    INTERACT,
-    USE_ITEM
-}

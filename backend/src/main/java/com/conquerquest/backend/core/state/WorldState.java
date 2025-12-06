@@ -4,12 +4,15 @@ import com.conquerquest.backend.core.ecs.GameComponent;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.stereotype.Component;
+
 /**
  * Represents the state of the game world, including all entities and their
  * components.
  * Threadsafe for concurrent access. written by gameLopp and read by websocket
  * handlers.
  */
+@Component
 public class WorldState {
 
     // Entity ID -> Map<ComponentClass, ComponentInstance>

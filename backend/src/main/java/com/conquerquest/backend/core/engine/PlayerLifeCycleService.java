@@ -45,8 +45,7 @@ public class PlayerLifeCycleService {
         UUID entityId = worldState.createEntity();
 
         worldState.addComponent(entityId, new PlayerTagComponent(userId, username, isGuest));
-        // worldState.addComponent(entityId, new StatsComponent(100, 5f, 1.5f, 50f,
-        // 0.5f));
+        worldState.addComponent(entityId, new MovementStatsComponent(100f, 1.5f, 20f));
         worldState.addComponent(entityId, new CollisionComponent(32f, 32f));
 
         // TODO: Get from WorldMapService
