@@ -21,8 +21,7 @@ public class PlayerControlSystem implements GameSystem {
     public void update(WorldState state, float delta) {
         var entities = state.getEntitiesWith(
                 InputComponent.class,
-                MovementStatsComponent.class,
-                SurvivalComponent.class);
+                MovementStatsComponent.class);
 
         for (UUID id : entities) {
             InputComponent input = state.getComponent(id, InputComponent.class);

@@ -45,12 +45,14 @@ public class PlayerLifeCycleService {
         UUID entityId = worldState.createEntity();
 
         worldState.addComponent(entityId, new PlayerTagComponent(userId, username, isGuest));
-        worldState.addComponent(entityId, new MovementStatsComponent(100f, 1.5f, 20f));
+        // Speed in the backend works diferently from the frontend, there baseSpeed is
+        // 3, here it must be 3*60(fps) = 180;
+        worldState.addComponent(entityId, new MovementStatsComponent(180f, 1.5f, 20f));
         worldState.addComponent(entityId, new CollisionComponent(32f, 32f));
 
         // TODO: Get from WorldMapService
         worldState.addComponent(entityId, new PositionComponent(100f, 100f, 0f));
-        worldState.addComponent(entityId, new InputComponent(0f, 0f, Set.of(), 0f, 0f));
+        worldState.addComponent(entityId, new InputComponent(0f, 0f, false, Set.of(), 0f, 0f));
         worldState.addComponent(entityId, new InventoryComponent(20));
 
         activeSessions.put(userId, entityId);

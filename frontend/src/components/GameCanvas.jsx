@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { socketClient } from "../game/network/SocketClient";
 import * as PIXI from 'pixi.js';
 
 function GameCanvas() {
@@ -52,9 +53,11 @@ function GameCanvas() {
                     containerRef.current.appendChild(app.canvas);
                 }
 
-                if (containerRef.current) {
-                    containerRef.current.appendChild(app.canvas);
-                }
+                console.log("Fetching map from server...");
+                const mapResponse = await fetch("http://localhost:8080/api/map");
+                if (!mapResponse.ok) throw new Error("Failed to load map");
+
+                const mapData = await mapResponse.json();
 
                 // load GameRenderer dynamically
                 const GameRendererModule = await import("../game/engine/GameRenderer");
@@ -64,10 +67,29 @@ function GameCanvas() {
 
                 const RendererClass = GameRendererModule.default;
 
-                gameRendererRef.current = new RendererClass(app);
+                // We just pass the App instance. The player creation happens on 'start()'.
+                gameRendererRef.current = new RendererClass(app, mapData);
 
-                console.log(`Starting game for player: ${playerName}`);
-                gameRendererRef.current = new GameRenderer(app, playerName);
+                console.log(`Connecting to server as: ${playerName}`);
+
+                // --- Setup Socket Callbacks ---
+
+                socketClient.onJoin = (response) => {
+                    console.log("Joined! Spawning entity at:", response.spawnX, response.spawnY);
+
+                    // Call start on renderer with server data (ID and Coordinates)
+                    gameRendererRef.current.start(response);
+                }
+
+                // When server sends a snapshot, we update visuals
+                socketClient.onGameState = (gameState) => {
+                    if (gameRendererRef.current) {
+                        gameRendererRef.current.syncState(gameState);
+                    }
+                };
+
+                // Connect to WebSocket
+                socketClient.connect(playerName, true); // true = isGuest
 
             } catch (error) {
                 console.error("Failed to initialize game:", error);
@@ -78,8 +100,9 @@ function GameCanvas() {
 
         // Cleanup
         return () => {
-
             isMounted = false;
+
+            socketClient.disconnect();
 
             if (appRef.current) {
                 // destroy PixiJS app and its children
@@ -93,9 +116,8 @@ function GameCanvas() {
                 gameRendererRef.current = null;
             }
         };
-    }, []);
+    }, [navigate, location.state]);
 
-    // Render the container for PixiJS
     return (
         <div
             ref={containerRef}

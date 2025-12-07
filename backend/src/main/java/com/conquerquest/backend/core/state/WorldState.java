@@ -82,4 +82,8 @@ public class WorldState {
         }
         return result;
     }
+
+    public boolean hasEntity(UUID entityId) {
+        return components.containsKey(entityId);
+    }
 }

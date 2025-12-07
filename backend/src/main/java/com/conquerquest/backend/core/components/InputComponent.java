@@ -6,7 +6,7 @@ import java.util.Set;
 public record InputComponent(
         float x,
         float y,
-
+        boolean isSprinting,
         // active actions (sprint, attack, dash, etc)
         Set<InputType> actions,
 
@@ -15,10 +15,6 @@ public record InputComponent(
 
     public boolean isMoving() {
         return x != 0 || y != 0;
-    }
-
-    public boolean isSprinting() {
-        return actions.contains(InputType.SPRINT);
     }
 
     public boolean isAttacking() {

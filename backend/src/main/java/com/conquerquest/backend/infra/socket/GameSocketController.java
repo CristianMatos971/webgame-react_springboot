@@ -36,12 +36,14 @@ public class GameSocketController {
      */
     @MessageMapping("/input")
     public void handleInput(@Payload InputDTO msg) {
-        try {
-            UUID userId = UUID.fromString(msg.userId());
-            UUID entityId = playerService.getEntityIdByUserId(userId);
 
-            if (entityId == null)
+        try {
+            UUID entityId = UUID.fromString(msg.userId());
+
+            if (!worldState.hasEntity(entityId)) {
+                log.warn("Entity doesn't exist in the world: {}", entityId);
                 return;
+            }
 
             // Convert actions from String to InputType enum
             Set<InputType> actions = Collections.emptySet();
@@ -62,6 +64,7 @@ public class GameSocketController {
             InputComponent newInput = new InputComponent(
                     msg.x(),
                     msg.y(),
+                    msg.isSprinting(),
                     actions,
                     0, 0);
 
@@ -103,6 +106,7 @@ public class GameSocketController {
             PositionComponent pos = worldState.getComponent(entityId, PositionComponent.class);
 
             JoinResponseDTO response = new JoinResponseDTO(
+                    userIdForSession != null ? userIdForSession : null,
                     entityId,
                     pos.x(),
                     pos.y(),
