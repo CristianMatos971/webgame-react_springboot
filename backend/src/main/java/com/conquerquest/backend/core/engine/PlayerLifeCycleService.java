@@ -18,6 +18,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class PlayerLifeCycleService {
 
+    private static final float PLAYER_BASE_SPEED = 180f; // px/sec
+    private static final float PLAYER_SPRINT_MULT = 1.5f;
+    private static final float PLAYER_HITBOX_SIZE = 32f;
+
     private final UserRepository userRepository;
     private final WorldState worldState;
 
@@ -47,8 +51,8 @@ public class PlayerLifeCycleService {
         worldState.addComponent(entityId, new PlayerTagComponent(userId, username, isGuest));
         // Speed in the backend works diferently from the frontend, there baseSpeed is
         // 3, here it must be 3*60(fps) = 180;
-        worldState.addComponent(entityId, new MovementStatsComponent(180f, 1.5f, 20f));
-        worldState.addComponent(entityId, new CollisionComponent(32f, 32f));
+        worldState.addComponent(entityId, new MovementStatsComponent(PLAYER_BASE_SPEED, PLAYER_SPRINT_MULT, 20f));
+        worldState.addComponent(entityId, new CollisionComponent(PLAYER_HITBOX_SIZE, PLAYER_HITBOX_SIZE));
 
         // TODO: Get from WorldMapService
         worldState.addComponent(entityId, new PositionComponent(100f, 100f, 0f));

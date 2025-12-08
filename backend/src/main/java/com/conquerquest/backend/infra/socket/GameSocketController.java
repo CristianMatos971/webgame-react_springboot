@@ -3,8 +3,8 @@ package com.conquerquest.backend.infra.socket;
 import com.conquerquest.backend.core.components.InputComponent;
 import com.conquerquest.backend.core.components.InputType;
 import com.conquerquest.backend.core.components.PositionComponent;
+import com.conquerquest.backend.core.engine.GameLoop;
 import com.conquerquest.backend.core.engine.PlayerLifeCycleService;
-import com.conquerquest.backend.core.state.WorldState;
 import com.conquerquest.backend.infra.socket.dto.InputDTO;
 import com.conquerquest.backend.infra.socket.dto.JoinRequestDTO;
 import com.conquerquest.backend.infra.socket.dto.JoinResponseDTO;
@@ -19,6 +19,8 @@ import org.springframework.stereotype.Controller;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Controller
@@ -26,7 +28,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GameSocketController {
 
-    private final WorldState worldState;
+    private final GameLoop gameLoop;
     private final PlayerLifeCycleService playerService;
     private final SimpMessagingTemplate messagingTemplate; // For sending messages to specific users
 
@@ -39,39 +41,16 @@ public class GameSocketController {
 
         try {
             UUID entityId = UUID.fromString(msg.userId());
+            Set<InputType> actions = parseActions(msg.actions());
 
-            if (!worldState.hasEntity(entityId)) {
-                log.warn("Entity doesn't exist in the world: {}", entityId);
-                return;
-            }
+            InputComponent newInput = new InputComponent(msg.x(), msg.y(), msg.isSprinting(), actions, 0, 0);
 
-            // Convert actions from String to InputType enum
-            Set<InputType> actions = Collections.emptySet();
-            if (msg.actions() != null && !msg.actions().isEmpty()) {
-                actions = msg.actions().stream()
-                        .map(actionStr -> {
-                            try {
-                                return InputType.valueOf(actionStr.toUpperCase());
-                            } catch (IllegalArgumentException e) {
-                                return null; // ignores invalid actions
-                            }
-                        })
-                        .filter(java.util.Objects::nonNull)
-                        .collect(Collectors.toSet());
-            }
-
-            // updates the InputComponent
-            InputComponent newInput = new InputComponent(
-                    msg.x(),
-                    msg.y(),
-                    msg.isSprinting(),
-                    actions,
-                    0, 0);
-
-            worldState.addComponent(entityId, newInput);
+            gameLoop.addInputTask(() -> {
+                gameLoop.getWorldState().addComponent(entityId, newInput);
+            });
 
         } catch (Exception e) {
-            log.error("Erro no input: {}", e.getMessage());
+            log.error("Error at input's parsing: {}", e.getMessage());
         }
     }
 
@@ -83,38 +62,49 @@ public class GameSocketController {
      */
     @MessageMapping("/join")
     public void handleJoin(@Payload JoinRequestDTO request, SimpMessageHeaderAccessor headerAccessor) {
-        try {
-            UUID entityId;
-            UUID userIdForSession;
+        String sessionId = headerAccessor.getSessionId();
 
-            if (request.isGuest()) {
-                // geust mode: spawn guest with provided name or "Unknown"
-                String name = (request.guestName() == null || request.guestName().isBlank())
-                        ? "Unknown"
-                        : request.guestName();
-                entityId = playerService.spawnGuest(name);
+        CompletableFuture<JoinResponseDTO> joinFuture = new CompletableFuture<>();
 
-                var tag = worldState.getComponent(entityId,
-                        com.conquerquest.backend.core.components.PlayerTagComponent.class);
-                userIdForSession = tag.userId();
+        gameLoop.addInputTask(() -> {
+            try {
+                UUID entityId;
+                UUID userIdForSession;
 
-            } else {
-                userIdForSession = UUID.fromString(request.userId());
-                entityId = playerService.spawnPlayer(userIdForSession);
+                if (request.isGuest()) {
+                    String name = (request.guestName() == null || request.guestName().isBlank())
+                            ? "Unknown"
+                            : request.guestName();
+                    entityId = playerService.spawnGuest(name);
+
+                    var tag = gameLoop.getWorldState().getComponent(entityId,
+                            com.conquerquest.backend.core.components.PlayerTagComponent.class);
+                    userIdForSession = tag.userId();
+                } else {
+                    userIdForSession = UUID.fromString(request.userId());
+                    entityId = playerService.spawnPlayer(userIdForSession);
+                }
+
+                PositionComponent pos = gameLoop.getWorldState().getComponent(entityId, PositionComponent.class);
+
+                JoinResponseDTO response = new JoinResponseDTO(
+                        userIdForSession,
+                        entityId,
+                        pos.getX(),
+                        pos.getY(),
+                        true,
+                        "Welcome to ConquerQuest!");
+
+                joinFuture.complete(response);
+
+            } catch (Exception e) {
+                joinFuture.completeExceptionally(e);
             }
+        });
 
-            PositionComponent pos = worldState.getComponent(entityId, PositionComponent.class);
-
-            JoinResponseDTO response = new JoinResponseDTO(
-                    userIdForSession != null ? userIdForSession : null,
-                    entityId,
-                    pos.x(),
-                    pos.y(),
-                    true,
-                    "Welcome to ConquerQuest!");
-
-            // sending the response back to the user who requested to join
-            String sessionId = headerAccessor.getSessionId();
+        // Await the result and send the response back to the client - max(500ms)
+        try {
+            JoinResponseDTO response = joinFuture.get(500, TimeUnit.MILLISECONDS);
 
             messagingTemplate.convertAndSendToUser(
                     sessionId,
@@ -122,11 +112,28 @@ public class GameSocketController {
                     response,
                     createHeaders(sessionId));
 
-            log.info("Join response sent to session: {}", sessionId);
+            log.info("Player joined: {}", response.entityId());
 
         } catch (Exception e) {
-            log.error("Error joining game", e);
+            log.error("Timeout or Error processing join request", e);
         }
+    }
+
+    // Helper to parse action strings to InputType enums
+    private Set<InputType> parseActions(Set<String> actionStrings) {
+        if (actionStrings == null || actionStrings.isEmpty()) {
+            return Collections.emptySet();
+        }
+        return actionStrings.stream()
+                .map(str -> {
+                    try {
+                        return InputType.valueOf(str.toUpperCase());
+                    } catch (Exception e) {
+                        return null;
+                    }
+                })
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     // Helper for setting the sessionId in headers when not using full Spring

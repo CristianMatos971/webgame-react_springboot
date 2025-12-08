@@ -1,7 +1,20 @@
 package com.conquerquest.backend.core.components;
 
 import com.conquerquest.backend.core.ecs.GameComponent;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-// Pure Data - Immutable preferred for thread safety in snapshots
-public record PositionComponent(float x, float y, float rotation) implements GameComponent {
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class PositionComponent implements GameComponent {
+    private float x;
+    private float y;
+    private float rotation;
+
+    public void update(float x, float y) {
+        this.x = x;
+        this.y = y;
+    }
 }
