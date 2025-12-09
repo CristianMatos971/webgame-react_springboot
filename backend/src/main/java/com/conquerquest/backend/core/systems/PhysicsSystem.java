@@ -42,22 +42,21 @@ public class PhysicsSystem implements GameSystem {
             float halfH = hitbox.height() / 2f;
 
             float nextX = currentX + moveX;
+
             if (worldMap.checkCollision(nextX - halfW, currentY - halfH, hitbox.width(), hitbox.height())) {
-                moveX = 0;
                 nextX = currentX;
             }
 
             float nextY = currentY + moveY;
+
             if (worldMap.checkCollision(nextX - halfW, nextY - halfH, hitbox.width(), hitbox.height())) {
-                moveY = 0;
                 nextY = currentY;
             }
 
             if (nextX != currentX || nextY != currentY) {
                 pos.setX(nextX);
                 pos.setY(nextY);
-
-                // TODO: Deal with rotation
+                // TODO: deal with rotation
             }
         }
     }

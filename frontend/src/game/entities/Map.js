@@ -58,16 +58,13 @@ export class Map {
 
     //utility functions
 
-    checkCollision(centerX, centerY, width = 32, height = 32) {
+    checkCollision(x, y, width = 32, height = 32) {
         const padding = 5.0;
 
-        const topLeftX = centerX - (width / 2);
-        const topLeftY = centerY - (height / 2);
-
-        const left = topLeftX + padding;
-        const right = topLeftX + width - padding;
-        const top = topLeftY + padding;
-        const bottom = topLeftY + height - padding;
+        const left = x + padding;
+        const right = x + width - padding;
+        const top = y + padding;
+        const bottom = y + height - padding;
 
         if (this.isPointSolid(left, top)) return true;
         if (this.isPointSolid(right, top)) return true;

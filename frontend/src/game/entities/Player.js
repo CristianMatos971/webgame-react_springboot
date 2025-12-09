@@ -1,30 +1,51 @@
 import * as PIXI from 'pixi.js';
 
 export class Player {
-    constructor(app, container, x, y) {
+    constructor(app, container, x, y, playerName) {
+        this.playerName = playerName;
         this.app = app;
-        this.container = container;
+        this.parentContainer = container;
 
         // Visual dimensions
         this.width = 40;
         this.height = 40;
 
-        this.sprite = this.createPlayerSprite();
-
-        // Initial position (Snap to server coordinates immediately)
+        this.sprite = new PIXI.Container();
         this.sprite.x = x;
         this.sprite.y = y;
+
+        // Creating the visual representation
+        this.characterVisual = new PIXI.Sprite(PIXI.Texture.WHITE);
+        this.characterVisual.tint = 0xe62731;
+        this.characterVisual.width = this.width;
+        this.characterVisual.height = this.height;
+        this.characterVisual.anchor.set(0.5); // center pivot
+
+        this.sprite.addChild(this.characterVisual);
+
+        this.createNameTag();
+
+        this.parentContainer.addChild(this.sprite);
     }
 
-    createPlayerSprite() {
-        const sprite = new PIXI.Sprite(PIXI.Texture.WHITE);
-        sprite.tint = 0xe62731; // Red - dev placeholder
-        sprite.width = this.width;
-        sprite.height = this.height;
-        sprite.anchor.set(0.5); // Pivot to center
+    createNameTag() {
+        const style = new PIXI.TextStyle({
+            fontFamily: 'Arial',
+            fontSize: 14,
+            fill: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 3,
+            align: 'center'
+        });
 
-        this.container.addChild(sprite);
-        return sprite;
+        const nameTag = new PIXI.Text({ text: this.playerName, style: style });
+
+        nameTag.anchor.set(0.5, 1);
+        nameTag.y = -(this.height / 2) - 10;
+
+        this.sprite.addChild(nameTag);
+
+        this.nameTag = nameTag;
     }
 
     /**
@@ -44,7 +65,7 @@ export class Player {
     setMovementInput(x, y, isSprinting) {
         // Flip sprite horizontally based on direction
         if (x !== 0) {
-            this.sprite.scale.x = Math.sign(x) * Math.abs(this.sprite.scale.x);
+            this.characterVisual.scale.x = Math.sign(x) * Math.abs(this.characterVisual.scale.x);
         }
     }
 
@@ -58,7 +79,7 @@ export class Player {
     }
 
     destroy() {
-        this.container.removeChild(this.sprite);
-        this.sprite.destroy();
+        this.parentContainer.removeChild(this.sprite);
+        this.sprite.destroy({ children: true });
     }
 }

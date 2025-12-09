@@ -29,7 +29,7 @@ export class NetworkSyncSystem {
             //Reconcile Main Player
             if (snapshot.id === this.myEntityId) {
                 if (mainPlayer) {
-                    if (this.ghost)
+                    if (ghost)
                         this.handleReconciliation(mainPlayer, snapshot, ghost);
                     else
                         this.handleReconciliation(mainPlayer, snapshot, null);

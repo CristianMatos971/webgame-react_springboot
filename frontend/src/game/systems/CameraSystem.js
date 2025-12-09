@@ -7,6 +7,18 @@ export class CameraSystem {
 
         // Smoothing factor (0.0 = no movement, 1.0 = instant snap, 0.1 = smooth)
         this.lerpFactor = 0.1;
+
+        this.zoom = 1.5;
+
+        this.world.scale.set(this.zoom);
+    }
+
+    setZoom(zoomLevel) {
+        this.zoom = zoomLevel;
+        this.world.scale.set(this.zoom);
+        if (this.target) {
+            this.update(0, true); // Snap to target on zoom change
+        }
     }
 
     follow(target) {
@@ -23,24 +35,25 @@ export class CameraSystem {
         const screenHeight = this.app.screen.height;
 
         // Calculate Target World Position (Center target on screen)
-        let targetWorldX = (screenWidth / 2) - this.target.x;
-        let targetWorldY = (screenHeight / 2) - this.target.y;
+        let targetWorldX = (screenWidth / 2) - (this.target.x * this.zoom);
+        let targetWorldY = (screenHeight / 2) - (this.target.y * this.zoom);
+
+        const mapScreenWidth = this.map.width * this.zoom;
+        const mapScreenHeight = this.map.height * this.zoom;
 
         // Clamp to Map Boundaries (Don't show black void outside map)
-        if (this.map.width > screenWidth) {
-            const minX = screenWidth - this.map.width;
+        if (mapScreenWidth > screenWidth) {
+            const minX = screenWidth - mapScreenWidth;
             targetWorldX = Math.max(Math.min(targetWorldX, 0), minX);
         } else {
-            // Center map if screen is wider than map
-            targetWorldX = (screenWidth - this.map.width) / 2;
+            targetWorldX = (screenWidth - mapScreenWidth) / 2;
         }
 
-        if (this.map.height > screenHeight) {
-            const minY = screenHeight - this.map.height;
+        if (mapScreenHeight > screenHeight) {
+            const minY = screenHeight - mapScreenHeight;
             targetWorldY = Math.max(Math.min(targetWorldY, 0), minY);
         } else {
-            // Center map if screen is taller than map
-            targetWorldY = (screenHeight - this.map.height) / 2;
+            targetWorldY = (screenHeight - mapScreenHeight) / 2;
         }
 
         // Apply Movement
@@ -50,8 +63,15 @@ export class CameraSystem {
         } else {
             // Smooth Interpolation (Lerp)
             // Current = Current + (Target - Current) * Factor
-            this.world.x += (targetWorldX - this.world.x) * this.lerpFactor;
-            this.world.y += (targetWorldY - this.world.y) * this.lerpFactor;
+            const currentX = this.world.position.x;
+            const currentY = this.world.position.y;
+
+            const nextX = currentX + (targetWorldX - currentX) * this.lerpFactor;
+            const nextY = currentY + (targetWorldY - currentY) * this.lerpFactor;
+
+            // final rounding to avoid sub-pixel rendering
+            this.world.position.x = Math.round(nextX * this.zoom) / this.zoom;
+            this.world.position.y = Math.round(nextY * this.zoom) / this.zoom;
         }
     }
 
@@ -59,10 +79,10 @@ export class CameraSystem {
     // Useful for View Culling (rendering optimization). 
     getVisibleBounds() {
         return {
-            x: -this.world.x,
-            y: -this.world.y,
-            width: this.app.screen.width,
-            height: this.app.screen.height
+            x: -this.world.x / this.zoom,
+            y: -this.world.y / this.zoom,
+            width: this.app.screen.width / this.zoom,
+            height: this.app.screen.height / this.zoom
         };
     }
 }

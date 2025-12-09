@@ -8,8 +8,14 @@ import { MovementSystem } from '../systems/MovementSystem';
 import { NetworkSyncSystem } from '../systems/NetworkSyncSystem';
 
 class GameRenderer {
-    constructor(app, mapData) {
+    constructor(app, mapData, playerName) {
         if (!app) throw new Error("GameRenderer requires a PixiJS App instance.");
+
+        // Set global PIXI options
+        PIXI.TextureSource.defaultOptions.scaleMode = 'nearest';
+        PIXI.AbstractRenderer.defaultOptions.roundPixels = true;
+
+        this.playerName = playerName;
         this.app = app;
         this.mapData = mapData;
 
@@ -40,7 +46,8 @@ class GameRenderer {
             this.app,
             this.scene.entityLayer,
             joinData.spawnX,
-            joinData.spawnY
+            joinData.spawnY,
+            this.playerName
         );
 
         // Debug: Server Ghost (Visual validation for Authoritative Server)
@@ -48,6 +55,8 @@ class GameRenderer {
         this.serverGhost.beginFill(0xFF0000, 0.5);
         this.serverGhost.drawRect(0, 0, 32, 32);
         this.serverGhost.endFill();
+        this.serverGhost.x = joinData.spawnX;
+        this.serverGhost.y = joinData.spawnY;
         this.scene.entityLayer.addChild(this.serverGhost);
 
         // Initialize Network System 
@@ -76,7 +85,7 @@ class GameRenderer {
      */
     syncState(gameState) {
         if (this.networkSystem) {
-            this.networkSystem.processSnapshot(gameState, this.player, null/*this.serverGhost */);
+            this.networkSystem.processSnapshot(gameState, this.player, null/* this.serverGhost*/);
         }
     }
 

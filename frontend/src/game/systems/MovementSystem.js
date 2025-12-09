@@ -3,6 +3,8 @@ import { socketClient } from '../network/SocketClient';
 const PREDICTED_SPEED = 3.0;
 const SPRINT_MULTIPLIER = 1.5;
 const DIAGONAL_CORRECTION = 0.7071;
+const HITBOX_SIZE = 32;
+const HALF_SIZE = HITBOX_SIZE / 2;
 
 export class MovementSystem {
     constructor() {
@@ -53,18 +55,41 @@ export class MovementSystem {
     }
 
     applyMovement(player, map, vx, vy) {
-        const nextX = player.sprite.x + vx;
-        const nextY = player.sprite.y + vy;
+        const currentX = player.sprite.x;
+        const currentY = player.sprite.y;
 
-        // X Axis Check
-        if (!map || !map.checkCollision(nextX, player.sprite.y)) {
-            player.sprite.x = nextX;
-        }
+        let nextX = currentX + vx;
 
-        // Y Axis Check
-        if (!map || !map.checkCollision(player.sprite.x, nextY)) {
-            player.sprite.y = nextY;
+
+        if (map) {
+            const hitX = map.checkCollision(
+                nextX - HALF_SIZE,   // Top-Left X
+                currentY - HALF_SIZE,// Top-Left Y 
+                HITBOX_SIZE,
+                HITBOX_SIZE
+            );
+
+            if (hitX) {
+                nextX = currentX;
+            }
         }
+        player.sprite.x = nextX;
+
+        let nextY = currentY + vy;
+
+        if (map) {
+            const hitY = map.checkCollision(
+                nextX - HALF_SIZE,
+                nextY - HALF_SIZE,
+                HITBOX_SIZE,
+                HITBOX_SIZE
+            );
+
+            if (hitY) {
+                nextY = currentY;
+            }
+        }
+        player.sprite.y = nextY;
     }
 
     broadcastInput(dir) {

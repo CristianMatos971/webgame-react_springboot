@@ -12,6 +12,9 @@ import java.util.Random;
 @Slf4j
 public class WorldMapService {
 
+    public record SpawnPoint(float x, float y) {
+    }
+
     // --- Constants TILE_TYPES) ---
     public static final int TILE_GRASS = 0;
     public static final int TILE_WATER = 1;
@@ -156,5 +159,26 @@ public class WorldMapService {
 
     private boolean isOutOfBounds(int col, int row) {
         return col < 0 || col >= WIDTH_TILES || row < 0 || row >= HEIGHT_TILES;
+    }
+
+    public SpawnPoint getValidSpawnPoint() {
+        int maxAttempts = 100;
+
+        for (int i = 0; i < maxAttempts; i++) {
+            int col = random.nextInt(WIDTH_TILES);
+            int row = random.nextInt(HEIGHT_TILES);
+
+            int tileType = mapData[col][row];
+
+            if (!isSolid(tileType) && tileType != TILE_WATER) {
+                float worldX = (col * TILE_SIZE) + (TILE_SIZE / 2f);
+                float worldY = (row * TILE_SIZE) + (TILE_SIZE / 2f);
+
+                return new SpawnPoint(worldX, worldY);
+            }
+        }
+
+        log.warn("Could not find a valid spawn point after {} attempts. Using default.", maxAttempts);
+        return new SpawnPoint(100f, 100f); // safe fallback
     }
 }

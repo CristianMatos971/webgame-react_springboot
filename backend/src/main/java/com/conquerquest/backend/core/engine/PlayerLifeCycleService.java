@@ -1,6 +1,7 @@
 package com.conquerquest.backend.core.engine;
 
 import com.conquerquest.backend.core.components.*;
+import com.conquerquest.backend.core.services.WorldMapService;
 import com.conquerquest.backend.core.state.WorldState;
 import com.conquerquest.backend.domain.user.User;
 import com.conquerquest.backend.domain.user.UserRepository;
@@ -24,6 +25,7 @@ public class PlayerLifeCycleService {
 
     private final UserRepository userRepository;
     private final WorldState worldState;
+    private final WorldMapService worldMapService;
 
     // Mapping: UserID (Persisted or Temp) -> EntityID (ECS)
     private final Map<UUID, UUID> activeSessions = new ConcurrentHashMap<>();
@@ -41,8 +43,11 @@ public class PlayerLifeCycleService {
 
     public UUID spawnGuest(String temporaryName) {
         UUID tempUserId = UUID.randomUUID();
+        String finalName = (temporaryName == null || temporaryName.isBlank())
+                ? "Guest"
+                : temporaryName + " (Guest)";
 
-        return createEntityInternal(tempUserId, temporaryName + " (Guest)", true);
+        return createEntityInternal(tempUserId, finalName, true);
     }
 
     private UUID createEntityInternal(UUID userId, String username, boolean isGuest) {
@@ -54,8 +59,9 @@ public class PlayerLifeCycleService {
         worldState.addComponent(entityId, new MovementStatsComponent(PLAYER_BASE_SPEED, PLAYER_SPRINT_MULT, 20f));
         worldState.addComponent(entityId, new CollisionComponent(PLAYER_HITBOX_SIZE, PLAYER_HITBOX_SIZE));
 
-        // TODO: Get from WorldMapService
-        worldState.addComponent(entityId, new PositionComponent(100f, 100f, 0f));
+        var spawnPoint = worldMapService.getValidSpawnPoint();
+
+        worldState.addComponent(entityId, new PositionComponent(spawnPoint.x(), spawnPoint.y(), 0f));
         worldState.addComponent(entityId, new InputComponent(0f, 0f, false, Set.of(), 0f, 0f));
         worldState.addComponent(entityId, new InventoryComponent(20));
 

@@ -35,6 +35,7 @@ function GameCanvas() {
                     height: window.innerHeight,
                     backgroundColor: 0x1d1d1d,
                     antialias: false,
+                    roundPixels: false,
                     resolution: window.devicePixelRatio || 1,
                     resizeTo: window
                 });
@@ -68,7 +69,7 @@ function GameCanvas() {
                 const RendererClass = GameRendererModule.default;
 
                 // We just pass the App instance. The player creation happens on 'start()'.
-                gameRendererRef.current = new RendererClass(app, mapData);
+                gameRendererRef.current = new RendererClass(app, mapData, playerName);
 
                 console.log(`Connecting to server as: ${playerName}`);
 
