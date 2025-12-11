@@ -16,6 +16,13 @@ export class Map {
 
         this.mapData = mapData;
 
+        if (!mapData || mapData.length === 0) {
+            console.error("MapData is empty or invalid!");
+            this.widthInTiles = 0;
+            this.heightInTiles = 0;
+            return;
+        }
+
         this.widthInTiles = mapData.length;
         this.heightInTiles = mapData[0].length;
         this.worldWidth = this.widthInTiles * this.tileSize;
@@ -59,6 +66,9 @@ export class Map {
     //utility functions
 
     checkCollision(x, y, width = 32, height = 32) {
+        // safe check for Dash errors
+        if (Number.isNaN(x) || Number.isNaN(y)) return true;
+
         const padding = 5.0;
 
         const left = x + padding;
@@ -75,6 +85,9 @@ export class Map {
     }
 
     isPointSolid(x, y) {
+        // safe check for Dash errors
+        if (Number.isNaN(x) || Number.isNaN(y)) return true;
+
         const tileX = Math.floor(x / this.tileSize);
         const tileY = Math.floor(y / this.tileSize);
 
@@ -84,6 +97,8 @@ export class Map {
         }
 
         const type = this.mapData[tileX][tileY];
+
+        if (type === undefined) return true;
 
         return type === TILE_TYPES.TREE || type === TILE_TYPES.ROCK;
     }

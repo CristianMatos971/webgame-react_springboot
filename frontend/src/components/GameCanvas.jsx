@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { socketClient } from "../game/network/SocketClient";
 import * as PIXI from 'pixi.js';
+import GameRenderer from "../game/engine/GameRenderer";
+import { Hud } from "../ui/Hud";
 
 function GameCanvas() {
     const containerRef = useRef(null);
@@ -60,16 +62,11 @@ function GameCanvas() {
 
                 const mapData = await mapResponse.json();
 
-                // load GameRenderer dynamically
-                const GameRendererModule = await import("../game/engine/GameRenderer");
-
                 // second safeguard
                 if (!isMounted) return;
 
-                const RendererClass = GameRendererModule.default;
-
                 // We just pass the App instance. The player creation happens on 'start()'.
-                gameRendererRef.current = new RendererClass(app, mapData, playerName);
+                gameRendererRef.current = new GameRenderer(app, mapData);
 
                 console.log(`Connecting to server as: ${playerName}`);
 
@@ -120,18 +117,15 @@ function GameCanvas() {
     }, [navigate, location.state]);
 
     return (
-        <div
-            ref={containerRef}
-            style={{
-                width: '100%',
-                height: '100%',
-                overflow: 'hidden',
-                display: 'block',
-                position: 'absolute',
-                top: 0,
-                left: 0
-            }}
-        />
+        <div className="relative w-screen h-screen overflow-hidden bg-gray-900">
+            {/* Game Layer */}
+            <div ref={containerRef} className="absolute inset-0 block" />
+
+            {/* UI Layer (Overlay) */}
+            <div className="absolute inset-0 z-10 pointer-events-none">
+                <Hud />
+            </div>
+        </div>
     );
 }
 

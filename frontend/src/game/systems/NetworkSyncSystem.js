@@ -1,8 +1,8 @@
 import { Player } from '../entities/Player';
 
-const SNAP_THRESHOLD = 150;     // Hard reset if too far
-const RECONCILE_THRESHOLD = 50; // Smooth fix limit
-const LERP_FACTOR = 0.1;        // Smoothing speed (0.1 = 10% per tick)
+const SNAP_THRESHOLD = 300;     // Hard reset if too far
+const BASE_RECONCILE = 20;      // Normal walking limit
+const DASH_RECONCILE = 100; // Smooth fix limit
 
 export class NetworkSyncSystem {
     constructor(app, entityLayer, myEntityId) {
@@ -45,7 +45,7 @@ export class NetworkSyncSystem {
     }
 
     handleReconciliation(player, snapshot, ghost) {
-        // Debug Visual
+        // Visual debug
         if (ghost) {
             ghost.x = snapshot.x;
             ghost.y = snapshot.y;
@@ -55,15 +55,22 @@ export class NetworkSyncSystem {
         const dy = player.sprite.y - snapshot.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
+        const currentThreshold = (player.isDashingPrediction) ? DASH_RECONCILE : BASE_RECONCILE;
+
         if (distance > SNAP_THRESHOLD) {
-            // Hard Correction
+            // Hard Correction 
+            console.warn("Hard snap triggered:", distance);
             player.syncPosition(snapshot.x, snapshot.y);
-        } else if (distance > RECONCILE_THRESHOLD) {
+        } else if (distance > currentThreshold) {
             // Soft Correction (Lerp)
-            const newX = player.sprite.x + (snapshot.x - player.sprite.x) * LERP_FACTOR;
-            const newY = player.sprite.y + (snapshot.y - player.sprite.y) * LERP_FACTOR;
+            const lerpFactor = player.isDashingPrediction ? 0.2 : 0.05; // 0.1 era padrão
+
+            const newX = player.sprite.x + (snapshot.x - player.sprite.x) * lerpFactor;
+            const newY = player.sprite.y + (snapshot.y - player.sprite.y) * lerpFactor;
             player.syncPosition(newX, newY);
         }
+
+
     }
 
     updateOtherPlayer(snapshot) {

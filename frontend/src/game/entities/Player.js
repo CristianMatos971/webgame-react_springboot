@@ -26,6 +26,8 @@ export class Player {
         this.createNameTag();
 
         this.parentContainer.addChild(this.sprite);
+
+        this.isDashingPrediction = null;
     }
 
     createNameTag() {
@@ -62,7 +64,7 @@ export class Player {
      * Does NOT change X/Y (that's the server's job), but changes 
      * sprite direction (flip) to give immediate feedback.
      */
-    setMovementInput(x, y, isSprinting) {
+    setMovementInput(x, y, facingX, facingY, isSprinting) {
         // Flip sprite horizontally based on direction
         if (x !== 0) {
             this.characterVisual.scale.x = Math.sign(x) * Math.abs(this.characterVisual.scale.x);

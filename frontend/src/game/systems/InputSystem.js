@@ -1,85 +1,127 @@
 
-const KEY_MAP = {
-    'w': 'up',
-    'arrowup': 'up',
+export const ACTIONS = {
+    UP: 'UP',
+    DOWN: 'DOWN',
+    LEFT: 'LEFT',
+    RIGHT: 'RIGHT',
+    SPRINT: 'SPRINT',
+    DASH: 'DASH',
+    ATTACK: 'ATTACK'
+};
 
-    's': 'down',
-    'arrowdown': 'down',
-
-    'a': 'left',
-    'arrowleft': 'left',
-
-    'd': 'right',
-    'arrowright': 'right',
-
-    'shift': 'sprint'
+const DEFAULT_KEY_MAP = {
+    'w': ACTIONS.UP,
+    'arrowup': ACTIONS.UP,
+    's': ACTIONS.DOWN,
+    'arrowdown': ACTIONS.DOWN,
+    'a': ACTIONS.LEFT,
+    'arrowleft': ACTIONS.LEFT,
+    'd': ACTIONS.RIGHT,
+    'arrowright': ACTIONS.RIGHT,
+    'shift': ACTIONS.SPRINT,
+    ' ': ACTIONS.DASH,
+    'j': ACTIONS.ATTACK
 };
 
 export class InputSystem {
     constructor() {
         // keys state map
-        this.actions = {
-            up: false,
-            down: false,
-            left: false,
-            right: false,
-            sprint: false
-        };
+        this.keyMap = DEFAULT_KEY_MAP;
+
+        // keys states - pressed or not
+        this.heldKeys = new Set();
+
+        // action Queue for one-time actions
+        this.pressedTriggers = new Set();
+
+        this.lastFacing = { x: 0, y: 1 }; // Default facing down
 
         // Binds so they keep the correct 'this' context
         this.onKeyDown = this.onKeyDown.bind(this);
         this.onKeyUp = this.onKeyUp.bind(this);
+        this.onBlur = this.onBlur.bind(this); // Clean inputs on alt+tab or window blur
 
-        this.addEventListeners();
+        this.bindEvents();
     }
 
-    addEventListeners() {
+    bindEvents() {
         window.addEventListener('keydown', this.onKeyDown);
         window.addEventListener('keyup', this.onKeyUp);
+        window.addEventListener('blur', this.onBlur);
     }
 
-    removeEventListeners() {
+    unbindEvents() {
         window.removeEventListener('keydown', this.onKeyDown);
         window.removeEventListener('keyup', this.onKeyUp);
+        window.removeEventListener('blur', this.onBlur);
     }
 
     onKeyDown(event) {
         const key = event.key.toLowerCase();
-        const action = KEY_MAP[key];
+        const action = this.keyMap[key];
 
-        // if the key is one we care about, set it to true
-        if (action) {
-            this.actions[action] = true;
-        }
+        if (!action) return;
+
+        if (this.heldKeys.has(key)) return;
+
+        this.heldKeys.add(key);
+        this.pressedTriggers.add(action);
     }
 
     onKeyUp(event) {
         const key = event.key.toLowerCase();
-        const action = KEY_MAP[key];
-
-        if (action) {
-            this.actions[action] = false;
-        }
+        this.heldKeys.delete(key);
     }
 
-    // calculate current direction based on keys pressed
-    getDirection() {
+    onBlur() {
+        this.heldKeys.clear();
+        this.pressedTriggers.clear();
+    }
+
+    // Public METHODS
+    getMovementVector() {
         let x = 0;
         let y = 0;
 
-        // Left (-1) or Right (+1)
-        if (this.actions.left) x -= 1;
-        if (this.actions.right) x += 1;
+        if (this.isActionHeld(ACTIONS.LEFT)) x -= 1;
+        if (this.isActionHeld(ACTIONS.RIGHT)) x += 1;
+        if (this.isActionHeld(ACTIONS.UP)) y -= 1;
+        if (this.isActionHeld(ACTIONS.DOWN)) y += 1;
 
-        // Up (-1) or Down (+1)
-        if (this.actions.up) y -= 1;
-        if (this.actions.down) y += 1;
+        if (x !== 0 || y !== 0) {
+            this.lastFacing = { x, y };
+        }
 
-        return { x, y, isSprinting: this.actions.sprint };
-
+        return { x, y, facing: this.lastFacing };
     }
 
+    isActionHeld(action) {
+        for (const [key, mapAction] of Object.entries(this.keyMap)) {
+            if (mapAction === action && this.heldKeys.has(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
+    wasActionJustPressed(action) {
+        if (this.pressedTriggers.has(action)) {
+            this.pressedTriggers.delete(action); // Consume the trigger
+            return true;
+        }
+        return false;
+    }
+
+    getTriggeredActions() {
+        const actions = Array.from(this.pressedTriggers);
+        this.pressedTriggers.clear();
+        return actions;
+    }
+
+    //call at the end of each frame to clear one-time actions
+    flush() {
+        this.pressedTriggers.clear();
+    }
 
     // Important for cleanup
     destroy() {

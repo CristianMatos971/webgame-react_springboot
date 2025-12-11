@@ -56,13 +56,21 @@ public class PlayerLifeCycleService {
         worldState.addComponent(entityId, new PlayerTagComponent(userId, username, isGuest));
         // Speed in the backend works diferently from the frontend, there baseSpeed is
         // 3, here it must be 3*60(fps) = 180;
-        worldState.addComponent(entityId, new MovementStatsComponent(PLAYER_BASE_SPEED, PLAYER_SPRINT_MULT, 20f));
+        worldState.addComponent(entityId, new MovementStatsComponent(
+                180f, // Base Speed
+                1.5f, // Sprint Mult
+                20f, // Min Speed
+                800f, // Dash Speed (Explosão)
+                0.2f, // Dash Duration (0.2s)
+                2.0f // Dash Cooldown (1.5s)
+        ));
+        worldState.addComponent(entityId, new DashComponent(false, 0f, 0f, 0f, 0f));
         worldState.addComponent(entityId, new CollisionComponent(PLAYER_HITBOX_SIZE, PLAYER_HITBOX_SIZE));
 
         var spawnPoint = worldMapService.getValidSpawnPoint();
 
         worldState.addComponent(entityId, new PositionComponent(spawnPoint.x(), spawnPoint.y(), 0f));
-        worldState.addComponent(entityId, new InputComponent(0f, 0f, false, Set.of(), 0f, 0f));
+        worldState.addComponent(entityId, new InputComponent(0f, 0f, 0f, 1f, false, Set.of(), 0f, 0f));
         worldState.addComponent(entityId, new InventoryComponent(20));
 
         activeSessions.put(userId, entityId);

@@ -44,7 +44,7 @@ class SocketClient {
             },
 
             onStompError: (frame) => {
-                console.error('❌ Broker reported error: ' + frame.headers['message']);
+                console.error('Broker reported error: ' + frame.headers['message']);
                 console.error('Additional details: ' + frame.body);
             }
         });
@@ -64,14 +64,15 @@ class SocketClient {
     }
 
     // called by game loop to send player inputs 60 times per second
-    sendInput(inputData) {
+    sendInput(type, inputData) {
         if (!this.connected || !this.entityId) return;
 
         this.client.publish({
             destination: '/app/input',
             body: JSON.stringify({
-                userId: this.entityId, // atention here for backend mapping
-                ...inputData
+                userId: this.entityId,
+                type,
+                payload: { ...inputData }
             })
         });
     }

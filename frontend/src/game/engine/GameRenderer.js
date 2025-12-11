@@ -8,14 +8,13 @@ import { MovementSystem } from '../systems/MovementSystem';
 import { NetworkSyncSystem } from '../systems/NetworkSyncSystem';
 
 class GameRenderer {
-    constructor(app, mapData, playerName) {
+    constructor(app, mapData) {
         if (!app) throw new Error("GameRenderer requires a PixiJS App instance.");
 
         // Set global PIXI options
         PIXI.TextureSource.defaultOptions.scaleMode = 'nearest';
         PIXI.AbstractRenderer.defaultOptions.roundPixels = true;
 
-        this.playerName = playerName;
         this.app = app;
         this.mapData = mapData;
 
@@ -47,7 +46,7 @@ class GameRenderer {
             this.scene.entityLayer,
             joinData.spawnX,
             joinData.spawnY,
-            this.playerName
+            joinData.username
         );
 
         // Debug: Server Ghost (Visual validation for Authoritative Server)
@@ -85,7 +84,8 @@ class GameRenderer {
      */
     syncState(gameState) {
         if (this.networkSystem) {
-            this.networkSystem.processSnapshot(gameState, this.player, null/* this.serverGhost*/);
+            // replace null with this.server.Ghost to debug server snapshots in-game
+            this.networkSystem.processSnapshot(gameState, this.player, this.serverGhost);
         }
     }
 
@@ -94,16 +94,16 @@ class GameRenderer {
      * Orchestrates systems in correct order
      */
     update(ticker) {
-        const delta = ticker.deltaTime;
-
+        //const delta = ticker.deltaTime;
+        const deltaInSeconds = ticker.deltaMS / 1000;
         // Process Input & Local Physics
         if (this.player) {
-            this.movementSystem.update(delta, this.player, this.inputSystem, this.map);
+            this.movementSystem.update(deltaInSeconds, this.player, this.inputSystem, this.map);
         }
 
         // Update Camera
         if (this.camera) {
-            this.camera.update(delta);
+            this.camera.update(deltaInSeconds);
         }
     }
 

@@ -1,14 +1,24 @@
+import { act } from 'react';
 import { socketClient } from '../network/SocketClient';
-
-const PREDICTED_SPEED = 3.0;
-const SPRINT_MULTIPLIER = 1.5;
-const DIAGONAL_CORRECTION = 0.7071;
-const HITBOX_SIZE = 32;
-const HALF_SIZE = HITBOX_SIZE / 2;
+import { gameEvents } from '../events/GameEventManager';
+const CONFIG = {
+    SPEED: 180,
+    SPRINT_MULT: 1.5,
+    DASH_SPEED: 800,
+    DIAGONAL: 0.7071,
+    HITBOX: 32,
+    DASH_COOLDOWN: 2.1,
+    DASH_DURATION: 0.2
+};
 
 export class MovementSystem {
     constructor() {
-        this.lastSentInput = { x: 0, y: 0, isSprinting: false };
+        this.lastSentInput = { x: 0, y: 0, facingX: 0, facingY: 1, isSprinting: false, actions: [] };
+
+        this.timers = {
+            dashCooldown: 0,
+            dashDuration: 0
+        };
     }
 
     /**
@@ -20,92 +30,152 @@ export class MovementSystem {
      */
     update(delta, player, inputSystem, map) {
         if (!player || !inputSystem) return;
+        this.player = player;
 
-        const dir = inputSystem.getDirection();
+        this.updateTimers(delta);
 
-        //  Calculate Velocity
-        if (dir.x !== 0 || dir.y !== 0) {
-            let moveSpeed = PREDICTED_SPEED;
-            if (dir.isSprinting) moveSpeed *= SPRINT_MULTIPLIER;
+        const input = this.gatherInput(inputSystem);
 
-            // Terrain modifiers
-            if (map) {
-                const modifier = map.getTerrainMultiplier(player.sprite.x, player.sprite.y);
-                moveSpeed *= modifier;
-            }
+        const isDashingActive = this.handleDashLogic(input.dashRequested, player);
 
-            let vx = dir.x * moveSpeed * delta;
-            let vy = dir.y * moveSpeed * delta;
+        const velocity = this.calculateVelocity(delta, input, isDashingActive, player, map);
 
-            // Diagonal normalization
-            if (dir.x !== 0 && dir.y !== 0) {
-                vx *= DIAGONAL_CORRECTION;
-                vy *= DIAGONAL_CORRECTION;
-            }
-
-            // Collision Detection & Application
-            this.applyMovement(player, map, vx, vy);
-
-            // Update Visuals (Animations/Flip)
-            player.setMovementInput(dir.x, dir.y, dir.isSprinting);
+        if (velocity.x !== 0 || velocity.y !== 0) {
+            this.applyPhysics(player, map, velocity.x, velocity.y);
+            this.updateVisuals(player, input);
         }
 
-        // 4. Network: Send Input to Server
-        this.broadcastInput(dir);
+        this.broadcast(input, isDashingActive);
     }
 
-    applyMovement(player, map, vx, vy) {
-        const currentX = player.sprite.x;
-        const currentY = player.sprite.y;
+    updateTimers(delta) {
+        if (this.timers.dashCooldown > 0) this.timers.dashCooldown -= delta;
+        if (this.timers.dashDuration > 0) this.timers.dashDuration -= delta;
+    }
 
-        let nextX = currentX + vx;
+    updateVisuals(player, input) {
+        player.setMovementInput(input.x, input.y, input.facingX, input.facingY, input.isSprinting);
+    }
 
+    gatherInput(inputSystem) {
+        const dir = inputSystem.getMovementVector();
+        const triggered = inputSystem.getTriggeredActions();
+
+        return {
+            x: dir.x,
+            y: dir.y,
+            facingX: dir.facingX,
+            facingY: dir.facingY,
+            isSprinting: inputSystem.isActionHeld("SPRINT"),
+            dashRequested: triggered.includes('DASH')
+        };
+    }
+
+    handleDashLogic(dashRequested, player) {
+        if (this.timers.dashDuration > 0) {
+            if (dashRequested) {
+                console.log(`[Dash Ignorado] Dash em progresso. Falta: ${this.timers.dashDuration.toFixed(3)}s`);
+            }
+            return true;
+        }
+
+        if (this.player && this.player.isDashingPrediction) {
+            console.log('[dash] prediction ended');
+            this.player.isDashingPrediction = false;
+        }
+
+        if (!dashRequested) {
+            return false;
+        }
+
+        if (this.timers.dashCooldown > 0) {
+            console.log(`[Dash Bloqueado] Cooldown ativo. Falta: ${this.timers.dashCooldown.toFixed(3)}s`);
+            return false;
+        }
+
+        this.timers.dashCooldown = CONFIG.DASH_COOLDOWN;
+        this.timers.dashDuration = CONFIG.DASH_DURATION;
+
+        console.log("Emitting Dash Event!");
+        gameEvents.emit('PLAYER_DASH', CONFIG.DASH_COOLDOWN * 1000);
+        console.log('[dash] started - cooldown=%s duration=%s', this.timers.dashCooldown, this.timers.dashDuration);
+
+        if (this.player) {
+            this.player.isDashingPrediction = true;
+        }
+
+        return true;
+    }
+
+    calculateVelocity(delta, input, isDashing, player, map) {
+        if (input.x === 0 && input.y === 0 && !isDashing) {
+            return { x: 0, y: 0 };
+        }
+
+        let speed = CONFIG.SPEED;
+
+        if (isDashing) {
+            speed = CONFIG.DASH_SPEED;
+        } else if (input.isSprinting) {
+            speed *= CONFIG.SPRINT_MULT;
+        }
 
         if (map) {
-            const hitX = map.checkCollision(
-                nextX - HALF_SIZE,   // Top-Left X
-                currentY - HALF_SIZE,// Top-Left Y 
-                HITBOX_SIZE,
-                HITBOX_SIZE
-            );
+            speed *= map.getTerrainMultiplier(player.sprite.x, player.sprite.y);
+        }
 
-            if (hitX) {
-                nextX = currentX;
-            }
+        let vx = input.x * speed * delta;
+        let vy = input.y * speed * delta;
+
+        if (isDashing && input.x === 0 && input.y === 0) {
+            vx = input.facingX * speed * delta;
+            vy = input.facingY * speed * delta;
+        }
+
+        if (!isDashing && input.x !== 0 && input.y !== 0) {
+            vx *= CONFIG.DIAGONAL;
+            vy *= CONFIG.DIAGONAL;
+        }
+
+        return { x: vx, y: vy };
+    }
+
+    applyPhysics(player, map, vx, vy) {
+        const halfSize = CONFIG.HITBOX / 2;
+
+        let nextX = player.sprite.x + vx;
+        if (map && map.checkCollision(nextX - halfSize, player.sprite.y - halfSize, CONFIG.HITBOX, CONFIG.HITBOX)) {
+            nextX = player.sprite.x;
         }
         player.sprite.x = nextX;
 
-        let nextY = currentY + vy;
-
-        if (map) {
-            const hitY = map.checkCollision(
-                nextX - HALF_SIZE,
-                nextY - HALF_SIZE,
-                HITBOX_SIZE,
-                HITBOX_SIZE
-            );
-
-            if (hitY) {
-                nextY = currentY;
-            }
+        let nextY = player.sprite.y + vy;
+        if (map && map.checkCollision(nextX - halfSize, nextY - halfSize, CONFIG.HITBOX, CONFIG.HITBOX)) {
+            nextY = player.sprite.y;
         }
         player.sprite.y = nextY;
     }
 
-    broadcastInput(dir) {
-        const hasInputChanged =
-            dir.x !== this.lastSentInput.x ||
-            dir.y !== this.lastSentInput.y ||
-            dir.isSprinting !== this.lastSentInput.isSprinting;
+    broadcast(input, isDashingActive) {
+        const currentInput = {
+            x: input.x,
+            y: input.y,
+            facingX: input.facingX,
+            facingY: input.facingY,
+            isSprinting: input.isSprinting,
+            isDashing: isDashingActive
+        };
+        const hasChanged =
+            currentInput.x !== this.lastSentInput.x ||
+            currentInput.y !== this.lastSentInput.y ||
+            currentInput.facingX !== this.lastSentInput.facingX ||
+            currentInput.facingY !== this.lastSentInput.facingY ||
+            currentInput.isSprinting !== this.lastSentInput.isSprinting ||
+            currentInput.isDashing !== this.lastSentInput.isDashing;
 
-        if (hasInputChanged) {
-            socketClient.sendInput({
-                x: dir.x,
-                y: dir.y,
-                isSprinting: dir.isSprinting,
-                actions: []
-            });
-            this.lastSentInput = { ...dir };
+        if (hasChanged) {
+            socketClient.sendInput("MOVE", currentInput);
+            this.lastSentInput = { ...currentInput };
         }
     }
 }
