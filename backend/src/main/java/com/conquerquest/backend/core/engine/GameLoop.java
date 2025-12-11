@@ -4,6 +4,7 @@ import com.conquerquest.backend.core.services.SnapshotService;
 import com.conquerquest.backend.core.state.WorldState;
 import com.conquerquest.backend.core.systems.PhysicsSystem;
 import com.conquerquest.backend.core.systems.PlayerControlSystem;
+import com.conquerquest.backend.core.systems.SurvivalSystem;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,8 @@ public class GameLoop {
     private final PhysicsSystem physicsSystem;
 
     private final PlayerControlSystem playerControlSystem;
+
+    private final SurvivalSystem survivalSystem;
 
     private final SnapshotService snapshotService;
 
@@ -48,9 +51,11 @@ public class GameLoop {
 
             playerControlSystem.update(worldState, FIXED_DELTA);
             physicsSystem.update(worldState, FIXED_DELTA);
+            survivalSystem.update(worldState, FIXED_DELTA);
 
             // Broadcast
             snapshotService.broadcastState();
+            snapshotService.broadcastPlayerStats();
 
         } catch (Exception e) {
             log.error("CRITICAL: Error in Game Loop", e);

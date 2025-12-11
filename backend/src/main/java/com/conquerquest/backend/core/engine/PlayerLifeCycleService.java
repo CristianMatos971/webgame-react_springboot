@@ -71,7 +71,10 @@ public class PlayerLifeCycleService {
 
         worldState.addComponent(entityId, new PositionComponent(spawnPoint.x(), spawnPoint.y(), 0f));
         worldState.addComponent(entityId, new InputComponent(0f, 0f, 0f, 1f, false, Set.of(), 0f, 0f));
-        worldState.addComponent(entityId, new InventoryComponent(20));
+
+        // Survival/Vitality Components:
+        worldState.addComponent(entityId, new SurvivalComponent(100f, 100f, 100f, 100f, 100f, 100f, 1));
+        worldState.addComponent(entityId, new VitalityComponent(100f, 100f, 100f, 100f));
 
         activeSessions.put(userId, entityId);
         log.info("Player spawned: {} [Guest: {}]", username, isGuest);

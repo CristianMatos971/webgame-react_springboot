@@ -1,5 +1,6 @@
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { gameEvents } from '../events/GameEventManager';
 
 class SocketClient {
     constructor() {
@@ -30,6 +31,17 @@ class SocketClient {
 
                         // tells gameCanvas about join success
                         if (this.onJoin) this.onJoin(response);
+
+                        const myUserId = response.userId;
+
+                        //debug
+                        console.log("--> JOIN SUCCESS. UserID :", myUserId);
+                        console.log("--> subscribing to topic:", `/topic/stats/${myUserId}`);
+
+                        this.client.subscribe(`/topic/stats/${myUserId}`, (statsMsg) => {
+                            const statsData = JSON.parse(statsMsg.body);
+                            gameEvents.emit("PLAYER_STATS_UPDATE", statsData);
+                        });
                     }
                 });
 

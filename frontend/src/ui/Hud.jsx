@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { gameEvents } from '../game/events/GameEventManager';
 import StatsBar from './StatsBar';
 import InventorySlot from './InventorySlot';
-import tempItemIcon from '../assets/ui/stats_placeholder.png'; // Placeholder icon
+import tempItemIcon from '../assets/ui/stats_placeholder.png';
 import dashIcon from "../assets/ui/dash_icon.png";
 
 export const Hud = () => {
@@ -12,8 +12,9 @@ export const Hud = () => {
     const [stats, setStats] = useState({
         health: 100, maxHealth: 100,
         hunger: 80, maxHunger: 100,
-        cold: 0, maxCold: 100,
-        stamina: 50, maxStamina: 100
+        thirst: 100, maxThirst: 100,
+        temperature: 100, maxTemperature: 100,
+        stamina: 100, maxStamina: 100
     });
 
     // Inventory State (10 slots)
@@ -29,16 +30,23 @@ export const Hud = () => {
             setTimeout(() => setIsDashing(false), durationMs);
         };
 
-        const onStatsUpdate = (newStats) => {
-            setStats(prev => ({ ...prev, ...newStats }));
+        const onStatsUpdate = (dto) => {
+            setStats(prev => ({
+                ...prev,
+                health: dto.health,
+                stamina: dto.stamina,
+                hunger: dto.hunger,
+                thirst: dto.thirst,
+                temperature: dto.temperature
+            }));
         };
 
         gameEvents.on('PLAYER_DASH', onDash);
-        gameEvents.on('STATS_UPDATE', onStatsUpdate);
+        gameEvents.on('PLAYER_STATS_UPDATE', onStatsUpdate);
 
         return () => {
             gameEvents.off('PLAYER_DASH', onDash);
-            gameEvents.off('STATS_UPDATE', onStatsUpdate);
+            gameEvents.off('PLAYER_STATS_UPDATE', onStatsUpdate);
         };
     }, []);
 
@@ -83,7 +91,8 @@ export const Hud = () => {
                     <StatsBar label="Health" value={stats.health} max={stats.maxHealth} colorClass="bg-red-600" icon="❤️" />
                     <StatsBar label="Stamina" value={stats.stamina} max={stats.maxStamina} colorClass="bg-slate-400" icon="⚡" />
                     <StatsBar label="Hunger" value={stats.hunger} max={stats.maxHunger} colorClass="bg-amber-600" icon="🍖" />
-                    <StatsBar label="Cold" value={100 - stats.cold} max={stats.maxCold} colorClass="bg-cyan-400" icon="❄️" />
+                    <StatsBar label="Thirst" value={stats.thirst} max={stats.maxThirst} colorClass="bg-blue-500" icon="💧" />
+                    <StatsBar label="Temperature" value={stats.temperature} max={stats.maxTemperature} colorClass="bg-cyan-400" icon="❄️" />
                 </div>
 
                 {/* INVENTORY BAR */}

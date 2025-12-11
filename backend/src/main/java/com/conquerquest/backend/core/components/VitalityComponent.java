@@ -8,13 +8,8 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class VitalityComponent implements GameComponent {
-    private int health;
-    private int maxHealth;
-    private int mana;
-    private int maxMana;
-
-    // Helper
-    public boolean isDead() {
-        return health <= 0;
-    }
+    private float health;
+    private float maxHealth;
+    private float stamina;
+    private float maxStamina;
 }

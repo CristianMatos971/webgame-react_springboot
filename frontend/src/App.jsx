@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import GameCanvas from './components/GameCanvas'; // Ajuste o caminho se necessário
-import MainMenu from './ui/MainMenu'; // Ajuste o caminho se necessário
+import MainMenu from './pages/MainMenu'; // Ajuste o caminho se necessário
 
 function App() {
   return (

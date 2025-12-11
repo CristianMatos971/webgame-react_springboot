@@ -1,13 +1,13 @@
 import React from 'react';
 import statsPlaceholder from '../assets/ui/stats_placeholder.png';
 
-// Reusable Stats Bar Component
 const StatsBar = ({ label, value, max, colorClass, icon }) => {
+    const safeValue = isNaN(value) ? 0 : value;
+
     // Calculate width percentage (clamped between 0 and 100)
-    const percent = Math.max(0, Math.min(100, (value / max) * 100));
+    const percent = Math.max(0, Math.min(100, (safeValue / max) * 100));
 
     return (
-        // INCREASED SIZE: w-[180px] h-[40px] for better visibility
         <div className="relative w-[180px] h-[40px] group cursor-help" title={label}>
 
             {/* Layer 1: Pixel Art Frame (Top) */}
@@ -27,7 +27,6 @@ const StatsBar = ({ label, value, max, colorClass, icon }) => {
             </div>
 
             {/* Layer 3: Text/Icon Overlay */}
-            {/* HOVER EFFECT: Numbers appear only on hover */}
             <div className="absolute inset-0 z-20 flex items-center justify-center text-xs font-pixel text-white drop-shadow-md">
 
                 <div className="flex items-center gap-2">
@@ -36,7 +35,7 @@ const StatsBar = ({ label, value, max, colorClass, icon }) => {
 
                     {/* Value visible on hover */}
                     <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/60 px-1 rounded">
-                        {Math.floor(value)}/{max}
+                        {Math.floor(safeValue)}/{max}
                     </span>
                 </div>
             </div>

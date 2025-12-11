@@ -1,6 +1,5 @@
 package com.conquerquest.backend.infra.socket.dto;
 
-import com.fasterxml.jackson.annotation.JsonAnySetter;
 import java.util.Map;
 
 public class PacketDTO {

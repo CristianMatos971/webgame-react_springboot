@@ -73,14 +73,10 @@ export class MovementSystem {
 
     handleDashLogic(dashRequested, player) {
         if (this.timers.dashDuration > 0) {
-            if (dashRequested) {
-                console.log(`[Dash Ignorado] Dash em progresso. Falta: ${this.timers.dashDuration.toFixed(3)}s`);
-            }
             return true;
         }
 
         if (this.player && this.player.isDashingPrediction) {
-            console.log('[dash] prediction ended');
             this.player.isDashingPrediction = false;
         }
 
@@ -89,16 +85,13 @@ export class MovementSystem {
         }
 
         if (this.timers.dashCooldown > 0) {
-            console.log(`[Dash Bloqueado] Cooldown ativo. Falta: ${this.timers.dashCooldown.toFixed(3)}s`);
             return false;
         }
 
         this.timers.dashCooldown = CONFIG.DASH_COOLDOWN;
         this.timers.dashDuration = CONFIG.DASH_DURATION;
 
-        console.log("Emitting Dash Event!");
         gameEvents.emit('PLAYER_DASH', CONFIG.DASH_COOLDOWN * 1000);
-        console.log('[dash] started - cooldown=%s duration=%s', this.timers.dashCooldown, this.timers.dashDuration);
 
         if (this.player) {
             this.player.isDashingPrediction = true;
