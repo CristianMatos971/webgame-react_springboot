@@ -15,6 +15,22 @@ function GameCanvas() {
     const navigate = useNavigate();
 
     useEffect(() => {
+        // block cursor right clicks default behavior
+        const handleContextMenu = (e) => {
+            e.preventDefault();
+            return false;
+        };
+
+        // Adiciona o ouvinte no documento inteiro
+        document.addEventListener('contextmenu', handleContextMenu);
+
+        // Limpeza quando sair do jogo
+        return () => {
+            document.removeEventListener('contextmenu', handleContextMenu);
+        };
+    }, []);
+
+    useEffect(() => {
 
         const playerName = location.state?.playerName;
         if (!playerName) {

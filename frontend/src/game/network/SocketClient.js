@@ -34,10 +34,6 @@ class SocketClient {
 
                         const myUserId = response.userId;
 
-                        //debug
-                        console.log("--> JOIN SUCCESS. UserID :", myUserId);
-                        console.log("--> subscribing to topic:", `/topic/stats/${myUserId}`);
-
                         this.client.subscribe(`/topic/stats/${myUserId}`, (statsMsg) => {
                             const statsData = JSON.parse(statsMsg.body);
                             gameEvents.emit("PLAYER_STATS_UPDATE", statsData);

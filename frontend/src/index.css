@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body,
+html,
+.game-container {
+    cursor: url('./assets/ui/cursor.png') 0 0, auto;
+}
+
+@layer utilities {
+
+    .cursor-pointer,
+    button,
+    a,
+    [role="button"] {
+        cursor: url('./assets/ui/cursor_hover.png') 0 0, pointer !important;
+    }
+}

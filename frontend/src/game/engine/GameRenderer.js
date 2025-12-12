@@ -85,7 +85,7 @@ class GameRenderer {
     syncState(gameState) {
         if (this.networkSystem) {
             // replace null with this.server.Ghost to debug server snapshots in-game
-            this.networkSystem.processSnapshot(gameState, this.player, this.serverGhost);
+            this.networkSystem.processSnapshot(gameState, this.player, null);
         }
     }
 
