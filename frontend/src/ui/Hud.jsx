@@ -19,9 +19,7 @@ export const Hud = () => {
 
     // Inventory State (10 slots)
     const [inventory, setInventory] = useState([
-        { id: 1, name: 'Wood', count: 5, icon: tempItemIcon },
-        { id: 2, name: 'Potion', count: 1, icon: tempItemIcon },
-        null, null, null, null, null, null, null, null
+        null, null, null, null, null, null, null, null, null, null
     ]);
 
     useEffect(() => {
@@ -41,12 +39,30 @@ export const Hud = () => {
             }));
         };
 
+        const onInventoryUpdate = (dto) => {
+            const newInventory = new Array(dto.capacity).fill(null);
+
+            dto.slots.forEach(slot => {
+                // slot is { slotIndex, itemId, quantity }
+                newInventory[slot.slotIndex] = {
+                    id: slot.itemId,
+                    name: slot.itemId,
+                    count: slot.quantity,
+                    icon: tempItemIcon   // Placeholder 
+                };
+            });
+
+            setInventory(newInventory);
+        };
+
         gameEvents.on('PLAYER_DASH', onDash);
         gameEvents.on('PLAYER_STATS_UPDATE', onStatsUpdate);
+        gameEvents.on('PLAYER_INVENTORY_UPDATE', onInventoryUpdate);
 
         return () => {
             gameEvents.off('PLAYER_DASH', onDash);
             gameEvents.off('PLAYER_STATS_UPDATE', onStatsUpdate);
+            gameEvents.off('PLAYER_INVENTORY_UPDATE', onInventoryUpdate);
         };
     }, []);
 

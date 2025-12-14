@@ -1,6 +1,8 @@
 package com.conquerquest.backend.core.services;
 
 import com.conquerquest.backend.core.components.InputComponent;
+import com.conquerquest.backend.core.components.InventoryComponent;
+import com.conquerquest.backend.core.components.InventorySlot;
 import com.conquerquest.backend.core.components.PlayerTagComponent;
 import com.conquerquest.backend.core.components.PositionComponent;
 import com.conquerquest.backend.core.components.SurvivalComponent;
@@ -8,6 +10,8 @@ import com.conquerquest.backend.core.components.VitalityComponent;
 import com.conquerquest.backend.core.state.WorldState;
 import com.conquerquest.backend.infra.socket.dto.EntitySnapshotDTO;
 import com.conquerquest.backend.infra.socket.dto.GameStateDTO;
+import com.conquerquest.backend.infra.socket.dto.InventorySlotDTO;
+import com.conquerquest.backend.infra.socket.dto.InventoryStateDTO;
 import com.conquerquest.backend.infra.socket.dto.PlayerStatsDTO;
 
 import lombok.RequiredArgsConstructor;
@@ -52,8 +56,8 @@ public class SnapshotService {
     }
 
     /**
-     * Low Frequency Channel - OnChange
-     * Sends individually to each player
+     * Middle frequency channel - OnChange
+     * Sends stats individually to each player
      */
     public void broadcastPlayerStats() {
         for (UUID entityId : worldState.getEntitiesWith(SurvivalComponent.class, VitalityComponent.class)) {
@@ -86,6 +90,28 @@ public class SnapshotService {
 
             messagingTemplate.convertAndSend("/topic/stats/" + userId, currentStats);
         }
+    }
+
+    public void sendInventoryUpdate(UUID userId, InventoryComponent inventory) {
+        List<InventorySlotDTO> slotDTOs = new ArrayList<>();
+
+        for (int i = 0; i < inventory.getCapacity(); i++) {
+            InventorySlot slot = inventory.getSlot(i);
+
+            // Only send slots that are not empty
+            if (slot != null) {
+                slotDTOs.add(new InventorySlotDTO(
+                        i,
+                        slot.getItem().name(),
+                        slot.getQuantity()));
+            }
+        }
+
+        InventoryStateDTO payload = new InventoryStateDTO(slotDTOs, inventory.getCapacity());
+
+        messagingTemplate.convertAndSend("/topic/inventory/" + userId, payload);
+
+        // log.debug("Inventory update sent to user {}", userId);
     }
 
     public void clearCache(UUID userId) {

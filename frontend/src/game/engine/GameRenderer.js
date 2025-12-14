@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js';
-import { Map as GameMap } from '../entities/Map';
+import { Map as GameMap } from '../entities/map/Map';
 import { Player } from '../entities/Player';
 import { InputSystem } from '../systems/InputSystem';
 import { CameraSystem } from '../systems/CameraSystem';

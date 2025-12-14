@@ -38,6 +38,11 @@ class SocketClient {
                             const statsData = JSON.parse(statsMsg.body);
                             gameEvents.emit("PLAYER_STATS_UPDATE", statsData);
                         });
+
+                        this.client.subscribe(`/topic/inventory/${myUserId}`, (invMsg) => {
+                            const invData = JSON.parse(invMsg.body);
+                            gameEvents.emit("PLAYER_INVENTORY_UPDATE", invData);
+                        });
                     }
                 });
 

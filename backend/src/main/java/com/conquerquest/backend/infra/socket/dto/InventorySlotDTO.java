@@ -1,9 +1,7 @@
 package com.conquerquest.backend.infra.socket.dto;
 
 public record InventorySlotDTO(
-        int id,
-        String name,
-        int count,
-        String icon // string ID mapped in frontend to an image
-) {
+                int slotIndex,
+                String itemId, // Item name (ex: "WOOD")
+                int quantity) {
 }
